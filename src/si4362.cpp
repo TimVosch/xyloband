@@ -182,13 +182,16 @@ RF_Status si4362_power_up(SI4362_t *RF, POWER_UP_ARGUMENTS *args)
 RF_Status si4362_get_part_info(SI4362_t *RF, PART_INFO_RESPONSE *response)
 {
   RF_Status status = si4362_command(RF, PART_INFO_CMD, 0, nullptr);
-
   if (status == RF_NOT_READY)
   {
     return RF_NOT_READY;
   }
 
-  si4362_read(RF, 9, (uint8_t *)response);
+  status = si4362_read(RF, 9, (uint8_t *)response);
+  if (status == RF_NOT_READY)
+  {
+    return RF_NOT_READY;
+  }
 
   return RF_READY;
 }
@@ -205,13 +208,13 @@ RF_Status si4362_change_state(SI4362_t *RF, uint8_t state)
   return RF_READY;
 }
 
-RF_Status si4362_set_property(SI4362_t *RF, uint8_t group, uint8_t propSize, uint8_t startProp, uint8_t *properties)
+RF_Status si4362_set_property(SI4362_t *RF, uint8_t group, uint8_t num_props, uint8_t start_prop, uint8_t *properties)
 {
-  uint8_t data[3 + propSize];
+  uint8_t data[3 + num_props];
   data[0] = group;
-  data[1] = propSize;
-  data[2] = startProp;
-  memcpy(&data[3], properties, propSize);
+  data[1] = num_props;
+  data[2] = start_prop;
+  memcpy(&data[3], properties, num_props);
 
   RF_Status status = si4362_command(RF, CHANGE_STATE_CMD, 1, data);
 
@@ -234,6 +237,30 @@ RF_Status si4362_get_device_state(SI4362_t *RF)
 
   uint8_t response[2] = {0, 0};
   si4362_read(RF, 2, response);
+
+  return RF_READY;
+}
+
+RF_Status si4362_modem_mod_type(SI4362_t *RF, uint8_t type)
+{
+  RF_Status status = si4362_set_property(RF, 0x20, 1, 0, &type);
+
+  if (status == RF_NOT_READY)
+  {
+    return RF_NOT_READY;
+  }
+
+  return RF_READY;
+}
+
+RF_Status si4362_base_frequency(SI4362_t *RF, uint32_t freq)
+{
+  RF_Status status = si4362_set_property(RF, 0x20, 1, 0, &type);
+
+  if (status == RF_NOT_READY)
+  {
+    return RF_NOT_READY;
+  }
 
   return RF_READY;
 }

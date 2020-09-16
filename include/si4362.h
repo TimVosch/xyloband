@@ -11,6 +11,8 @@ typedef struct
   SPI_t *SPI;
   uint8_t SDN;
   uint8_t GPIO1;
+  uint8_t SY_SEL;
+  uint8_t PLL_DIV;
 } SI4362_t;
 
 typedef enum
@@ -36,6 +38,7 @@ extern "C"
   RF_Status si4362_get_device_state(SI4362_t *RF);
   RF_Status si4362_change_state(SI4362_t *RF, uint8_t state);
   RF_Status si4362_set_property(SI4362_t *RF, uint8_t group, uint8_t propSize, uint8_t startProp, uint8_t *properties);
+  RF_Status si4362_modem_mod_type(SI4362_t *RF, uint8_t type);
 
 #ifdef __cplusplus
 }

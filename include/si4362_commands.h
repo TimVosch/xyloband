@@ -37,7 +37,8 @@ enum
 // Command arguments
 //
 
-typedef union {
+typedef union
+{
   struct
   {
     uint8_t FUNC : 7;
@@ -47,7 +48,8 @@ typedef union {
   uint8_t reg;
 } BOOT_OPTIONS_t;
 
-typedef union {
+typedef union
+{
   struct
   {
     uint8_t TCX0 : 1;
@@ -68,10 +70,13 @@ typedef struct
 
 typedef struct
 {
+  uint8_t CTS;
   uint8_t CHIPREV;
-  uint16_t PART;
+  uint8_t PARTh;
+  uint8_t PARTl;
   uint8_t PBUILD;
-  uint16_t ID;
+  uint8_t IDh;
+  uint8_t IDl;
   uint8_t CUSTOMER;
   uint8_t ROMID;
 } PART_INFO_RESPONSE;
