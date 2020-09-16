@@ -8,6 +8,7 @@ uint32_t STATUS = LED_RED;
 
 void rf_init()
 {
+  STATUS = LED_RED;
   // Initialize SPI
   RF_SPI = spi_create(RF_SDI, RF_SDO, RF_SCLK, RF_SS);
 
@@ -41,8 +42,6 @@ void rf_init()
 
 int main(void)
 {
-  rf_init();
-
   PORT->Group[0].DIRSET.reg = MOSFET |                        // Output to mosfet power switch for circuit
                               LED_GREEN | LED_RED | LED_BLUE; // LED Output
 
@@ -51,7 +50,8 @@ int main(void)
 
   while (1)
   {
-    delay(500);
+    rf_init();
+    delay(1000);
     PORT->Group[0].OUTTGL.reg = STATUS;
   }
 }

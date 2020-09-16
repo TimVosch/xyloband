@@ -21,14 +21,14 @@ void spi_syncbusy(Sercom *sercom)
 
 void spi_select(SPI_t *SPI)
 {
-  PORT->Group[0].OUTCLR.reg = SPI->SS;
+  PORT->Group[0].OUTCLR.reg = 1 << SPI->SS;
   delay(1);
 }
 
 void spi_deselect(SPI_t *SPI)
 {
   delay(1);
-  PORT->Group[0].OUTSET.reg = SPI->SS;
+  PORT->Group[0].OUTSET.reg = 1 << SPI->SS;
 }
 
 void spi_initialize(SPI_t *SPI)

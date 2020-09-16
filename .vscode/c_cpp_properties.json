@@ -33,7 +33,7 @@
             "defines": [
                 "F_CPU=8000000L",
                 "USBCON",
-                "PLATFORMIO=50000",
+                "PLATFORMIO=50001",
                 "__SAMD20E18__",
                 ""
             ],
