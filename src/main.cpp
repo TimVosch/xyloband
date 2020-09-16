@@ -4,11 +4,11 @@
 
 SPI_t RF_SPI;
 SI4362_t RF;
-uint32_t STATUS = LED_RED;
+uint32_t STATUS = LED_BLUE;
 
 void rf_init()
 {
-  STATUS = LED_RED;
+  STATUS = LED_BLUE;
   // Initialize SPI
   RF_SPI = spi_create(RF_SDI, RF_SDO, RF_SCLK, RF_SS);
 
@@ -30,18 +30,19 @@ void rf_init()
 
   si4362_command(&RF, PART_INFO_CMD, 0, nullptr);
 
-  uint8_t data[8] = {0};
+  uint8_t data[9] = {0};
 
-  uint8_t ready = si4362_read(&RF, 8, data);
-  if (ready == 0)
+  uint8_t ready = si4362_read(&RF, 9, data);
+  if (ready == RF_NOT_READY)
   {
+    STATUS = LED_RED;
     return;
   }
 
-  uint16_t part = (data[1] << 8) | data[2];
+  uint16_t part = (data[2] << 8) | data[3];
   if (part == 0x4362)
   {
-    STATUS = LED_BLUE;
+    STATUS = LED_GREEN;
   }
 }
 

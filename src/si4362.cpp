@@ -28,9 +28,15 @@ void si4362_init(SI4362_t *RF)
  * @param argsLength Length of the arguments buffer
  * @param args Pointer to the arguments buffer
  */
-void si4362_command(SI4362_t *RF, uint8_t CMD, uint8_t argsLength, uint8_t *args)
+RF_Status si4362_command(SI4362_t *RF, uint8_t CMD, uint8_t argsLength, uint8_t *args)
 {
   SPI_t *SPI = RF->SPI;
+
+  // Read CTS a few times and see if chip becomes ready
+  if (si4362_wait_cts(RF) != RF_READY)
+  {
+    return RF_NOT_READY;
+  }
 
   spi_select(SPI);
 
@@ -46,8 +52,9 @@ void si4362_command(SI4362_t *RF, uint8_t CMD, uint8_t argsLength, uint8_t *args
       spi_transfer(SPI, byte);
     }
   }
-  delay(1);
   spi_deselect(SPI);
+
+  return RF_READY;
 }
 
 /**
@@ -59,15 +66,20 @@ void si4362_command(SI4362_t *RF, uint8_t CMD, uint8_t argsLength, uint8_t *args
  * @return true If the read was a succes
  * @return false If the module was not ready
  */
-uint8_t si4362_read(SI4362_t *RF, uint8_t bufferLength, uint8_t *respBuffer)
+RF_Status si4362_read(SI4362_t *RF, uint8_t bufferLength, uint8_t *respBuffer)
 {
   SPI_t *SPI = RF->SPI;
 
-  uint8_t ready = si4362_start_read(RF);
-  if (ready == 0)
+  // Read CTS a few times and see if chip becomes ready
+  if (si4362_wait_cts(RF) == RF_NOT_READY)
   {
-    return 0;
+    return RF_NOT_READY;
   }
+
+  spi_select(SPI);
+
+  // Begin reading response
+  spi_transfer(SPI, READ_CMD_BUFF_CMD);
 
   // Radio is ready
   for (; bufferLength; bufferLength--)
@@ -77,7 +89,7 @@ uint8_t si4362_read(SI4362_t *RF, uint8_t bufferLength, uint8_t *respBuffer)
 
   spi_deselect(SPI);
 
-  return 1;
+  return RF_READY;
 }
 
 /**
@@ -94,13 +106,12 @@ void si4362_reset(SI4362_t *RF)
 }
 
 /**
- * @brief Checks Clear To Send byte
+ * @brief Checks Clear To Send line
  * 
  * @param RF 
- * @return true if CTS was signalled, spi kept active
- * @return false CTS not ready, spi closed
+ * @return radio status. Either RF_READY or RF_NOT_READY
  */
-uint8_t si4362_start_read(SI4362_t *RF)
+RF_Status si4362_ready(SI4362_t *RF)
 {
   SPI_t *SPI = RF->SPI;
 
@@ -111,15 +122,20 @@ uint8_t si4362_start_read(SI4362_t *RF)
     spi_select(SPI);
     spi_transfer(SPI, READ_CMD_BUFF_CMD);
     response = spi_transfer(SPI, 0x00);
+    spi_deselect(SPI);
 
     if (response != 0xFF)
     {
-      spi_deselect(SPI);
       delay(10);
     }
   }
 
-  return response == 0xff;
+  return response == 0xff ? RF_READY : RF_NOT_READY;
+
+  // Line is high when ready, low if busy
+  // uint8_t ready = (PORT->Group[0].IN.reg & (1 << RF->GPIO1));
+
+  // return ready > 0 ? RF_READY : RF_NOT_READY;
 }
 
 /**
@@ -127,10 +143,14 @@ uint8_t si4362_start_read(SI4362_t *RF)
  * 
  * @param RF 
  */
-void si4362_wait_cts(SI4362_t *RF)
+RF_Status si4362_wait_cts(SI4362_t *RF)
 {
-  si4362_start_read(RF);
-  spi_deselect(RF->SPI);
+  uint8_t retries = 5;
+  while (si4362_ready(RF) != RF_READY && retries--)
+  {
+    delay(10);
+  }
+  return si4362_ready(RF);
 }
 
 /**
@@ -141,19 +161,14 @@ void si4362_wait_cts(SI4362_t *RF)
  * @return true 
  * @return false 
  */
-bool si4362_power_up(SI4362_t *RF, POWER_UP_ARGUMENTS *args)
+RF_Status si4362_power_up(SI4362_t *RF, POWER_UP_ARGUMENTS *args)
 {
-  si4362_wait_cts(RF);
-
   // Send CMD
   uint8_t buffer[6] = {
       0x1, 0x1, 0x01, 0xc9, 0xc3, 0x80};
-  si4362_command(RF, POWER_UP_CMD, 6, buffer);
+  RF_Status status = si4362_command(RF, POWER_UP_CMD, 6, buffer);
 
-  // Expect CTS read to succeed
-  si4362_wait_cts(RF);
-
-  return true;
+  return status;
 }
 
 /**
@@ -164,48 +179,61 @@ bool si4362_power_up(SI4362_t *RF, POWER_UP_ARGUMENTS *args)
  * @return true 
  * @return false 
  */
-bool si4362_get_part_info(SI4362_t *RF, PART_INFO_RESPONSE *response)
+RF_Status si4362_get_part_info(SI4362_t *RF, PART_INFO_RESPONSE *response)
 {
-  si4362_wait_cts(RF);
+  RF_Status status = si4362_command(RF, PART_INFO_CMD, 0, nullptr);
 
-  si4362_command(RF, PART_INFO_CMD, 0, nullptr);
-  uint8_t buf[8];
-  si4362_read(RF, 8, buf);
+  if (status == RF_NOT_READY)
+  {
+    return RF_NOT_READY;
+  }
 
-  return buf[2] != 0xff;
+  si4362_read(RF, 9, (uint8_t *)response);
+
+  return RF_READY;
 }
 
-void si4362_change_state(SI4362_t *RF, uint8_t state)
+RF_Status si4362_change_state(SI4362_t *RF, uint8_t state)
 {
-  si4362_wait_cts(RF);
+  RF_Status status = si4362_command(RF, CHANGE_STATE_CMD, 1, &state);
 
-  si4362_command(RF, CHANGE_STATE_CMD, 1, &state);
+  if (status == RF_NOT_READY)
+  {
+    return RF_NOT_READY;
+  }
 
-  si4362_wait_cts(RF);
+  return RF_READY;
 }
 
-void si4362_set_property(SI4362_t *RF, uint8_t group, uint8_t propSize, uint8_t startProp, uint8_t *properties)
+RF_Status si4362_set_property(SI4362_t *RF, uint8_t group, uint8_t propSize, uint8_t startProp, uint8_t *properties)
 {
-  si4362_wait_cts(RF);
-
   uint8_t data[3 + propSize];
   data[0] = group;
   data[1] = propSize;
   data[2] = startProp;
   memcpy(&data[3], properties, propSize);
-  si4362_command(RF, CHANGE_STATE_CMD, 1, data);
 
-  si4362_wait_cts(RF);
+  RF_Status status = si4362_command(RF, CHANGE_STATE_CMD, 1, data);
+
+  if (status == RF_NOT_READY)
+  {
+    return RF_NOT_READY;
+  }
+
+  return RF_READY;
 }
 
-void si4362_get_device_state(SI4362_t *RF)
+RF_Status si4362_get_device_state(SI4362_t *RF)
 {
-  si4362_wait_cts(RF);
+  RF_Status status = si4362_command(RF, REQUEST_DEVICE_STATE_CMD, 0, nullptr);
 
-  si4362_command(RF, REQUEST_DEVICE_STATE_CMD, 0, nullptr);
+  if (status == RF_NOT_READY)
+  {
+    return RF_NOT_READY;
+  }
 
   uint8_t response[2] = {0, 0};
   si4362_read(RF, 2, response);
 
-  si4362_wait_cts(RF);
+  return RF_READY;
 }
