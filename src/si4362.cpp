@@ -59,11 +59,15 @@ void si4362_command(SI4362_t *RF, uint8_t CMD, uint8_t argsLength, uint8_t *args
  * @return true If the read was a succes
  * @return false If the module was not ready
  */
-bool si4362_read(SI4362_t *RF, uint8_t bufferLength, uint8_t *respBuffer)
+uint8_t si4362_read(SI4362_t *RF, uint8_t bufferLength, uint8_t *respBuffer)
 {
   SPI_t *SPI = RF->SPI;
 
-  si4362_start_read(RF);
+  uint8_t ready = si4362_start_read(RF);
+  if (ready == 0)
+  {
+    return 0;
+  }
 
   // Radio is ready
   for (; bufferLength; bufferLength--)
@@ -73,7 +77,7 @@ bool si4362_read(SI4362_t *RF, uint8_t bufferLength, uint8_t *respBuffer)
 
   spi_deselect(SPI);
 
-  return true;
+  return 1;
 }
 
 /**
@@ -96,7 +100,7 @@ void si4362_reset(SI4362_t *RF)
  * @return true if CTS was signalled, spi kept active
  * @return false CTS not ready, spi closed
  */
-void si4362_start_read(SI4362_t *RF)
+uint8_t si4362_start_read(SI4362_t *RF)
 {
   SPI_t *SPI = RF->SPI;
 
@@ -105,9 +109,8 @@ void si4362_start_read(SI4362_t *RF)
   while (response != 0xFF)
   {
     spi_select(SPI);
-    delay(1);
     spi_transfer(SPI, READ_CMD_BUFF_CMD);
-    response = spi_transfer(SPI, 0);
+    response = spi_transfer(SPI, 0x00);
 
     if (response != 0xFF)
     {
@@ -115,6 +118,8 @@ void si4362_start_read(SI4362_t *RF)
       delay(10);
     }
   }
+
+  return response == 0xff;
 }
 
 /**

@@ -26,15 +26,20 @@ void rf_init()
   si4362_get_device_state(&RF);
 
   // Send power up command
-  // si4362_power_up(&RF, nullptr);
+  si4362_power_up(&RF, nullptr);
 
-  uint8_t FRR_CTRL[4] = {0x03, 0x0A, 0x09, 0x07};
-  si4362_set_property(&RF, 0x02, 0x04, 0x00, FRR_CTRL);
+  si4362_command(&RF, PART_INFO_CMD, 0, nullptr);
 
-  uint8_t data[4] = {0, 0, 0, 0};
-  si4362_command(&RF, 0x50, 0, nullptr);
-  si4362_read(&RF, 4, data);
-  if (data[0] != 0xff)
+  uint8_t data[8] = {0};
+
+  uint8_t ready = si4362_read(&RF, 8, data);
+  if (ready == 0)
+  {
+    return;
+  }
+
+  uint16_t part = (data[1] << 8) | data[2];
+  if (part == 0x4362)
   {
     STATUS = LED_BLUE;
   }
@@ -48,9 +53,10 @@ int main(void)
   PORT->Group[0].OUTCLR.reg = LED_GREEN | LED_RED | LED_BLUE | SPEAKER_SHDN;
   PORT->Group[0].OUTSET.reg = MOSFET | SPEAKER_SHDN;
 
+  rf_init();
+
   while (1)
   {
-    rf_init();
     delay(1000);
     PORT->Group[0].OUTTGL.reg = STATUS;
   }

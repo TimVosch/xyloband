@@ -20,10 +20,10 @@ extern "C"
 
   void si4362_init(SI4362_t *RF);
   void si4362_command(SI4362_t *RF, uint8_t CMD, uint8_t argsLength, uint8_t *args);
-  bool si4362_read(SI4362_t *RF, uint8_t bufferLength, uint8_t *respBuffer);
+  uint8_t si4362_read(SI4362_t *RF, uint8_t bufferLength, uint8_t *respBuffer);
   void si4362_reset(SI4362_t *RF);
   void si4362_wait_cts(SI4362_t *RF);
-  void si4362_start_read(SI4362_t *RF);
+  uint8_t si4362_start_read(SI4362_t *RF);
 
   bool si4362_power_up(SI4362_t *RF, POWER_UP_ARGUMENTS *args);
   bool si4362_get_part_info(SI4362_t *RF, PART_INFO_RESPONSE *response);
