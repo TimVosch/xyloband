@@ -1,0 +1,52 @@
+{
+    "configurations": [
+        {
+            "name": "!!! WARNING !!! AUTO-GENERATED FILE, PLEASE DO NOT MODIFY IT AND USE https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags"
+        },
+        {
+            "name": "Linux",
+            "includePath": [
+                "/home/timvosch/src/xyloband/include",
+                "/home/timvosch/src/xyloband/src",
+                "/home/timvosch/src/xyloband/lib/samd20/include",
+                "/home/timvosch/src/xyloband/lib/CMSIS/Include",
+                "/home/timvosch/src/xyloband/lib/CMSIS",
+                "/home/timvosch/src/xyloband/lib/samd20",
+                "/home/timvosch/src/xyloband/lib/samd20b",
+                "/home/timvosch/.platformio/packages/tool-unity",
+                ""
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "/home/timvosch/src/xyloband/include",
+                    "/home/timvosch/src/xyloband/src",
+                    "/home/timvosch/src/xyloband/lib/samd20/include",
+                    "/home/timvosch/src/xyloband/lib/CMSIS/Include",
+                    "/home/timvosch/src/xyloband/lib/CMSIS",
+                    "/home/timvosch/src/xyloband/lib/samd20",
+                    "/home/timvosch/src/xyloband/lib/samd20b",
+                    "/home/timvosch/.platformio/packages/tool-unity",
+                    ""
+                ]
+            },
+            "defines": [
+                "F_CPU=8000000L",
+                "USBCON",
+                "PLATFORMIO=50000",
+                "__SAMD20E18__",
+                ""
+            ],
+            "intelliSenseMode": "clang-x64",
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "compilerPath": "/home/timvosch/.platformio/packages/toolchain-gccarmnoneeabi/bin/arm-none-eabi-gcc",
+            "compilerArgs": [
+                "-mthumb",
+                "-mcpu=cortex-m0plus",
+                ""
+            ]
+        }
+    ],
+    "version": 4
+}
