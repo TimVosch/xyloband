@@ -226,7 +226,7 @@ RF_Status si4362_set_property(SI4362_t *RF, uint8_t group, uint8_t num_props, ui
   return RF_READY;
 }
 
-RF_Status si4362_get_device_state(SI4362_t *RF)
+RF_Status si4362_get_device_state(SI4362_t *RF, uint8_t *response)
 {
   RF_Status status = si4362_command(RF, REQUEST_DEVICE_STATE_CMD, 0, nullptr);
 
@@ -235,11 +235,65 @@ RF_Status si4362_get_device_state(SI4362_t *RF)
     return RF_NOT_READY;
   }
 
-  uint8_t response[2] = {0, 0};
+  si4362_read(RF, 3, response);
+
+  return RF_READY;
+}
+
+RF_Status si4362_start_rx(SI4362_t *RF, uint16_t rx_len)
+{
+  uint8_t args[7] = {
+      0,
+      0,
+      (uint8_t)(rx_len & 0x1F),
+      (uint8_t)(rx_len >> 8),
+      0,
+      0,
+      0,
+  };
+  RF_Status status = si4362_command(RF, START_RX_CMD, 7, &args[0]);
+
+  if (status == RF_NOT_READY)
+  {
+    return RF_NOT_READY;
+  }
+
+  return RF_READY;
+}
+
+RF_Status si4362_fifo_info(SI4362_t *RF, bool reset, uint8_t *response)
+{
+  uint8_t arg = reset << 1;
+  RF_Status status = si4362_command(RF, FIFO_INFO_CMD, 1, &arg);
+
+  if (status == RF_NOT_READY)
+  {
+    return RF_NOT_READY;
+  }
+
   si4362_read(RF, 2, response);
 
   return RF_READY;
 }
+
+RF_Status si4362_set_gpio0_rx_state(SI4362_t *RF)
+{
+  uint8_t args[2] = {
+      0,
+      33 | 0b100000};
+  RF_Status status = si4362_command(RF, GPIO_PIN_CFG_CMD, 2, &args[0]);
+
+  if (status == RF_NOT_READY)
+  {
+    return RF_NOT_READY;
+  }
+
+  return RF_READY;
+}
+
+//
+// Properties
+//
 
 RF_Status si4362_modem_mod_type(SI4362_t *RF, uint8_t type)
 {
@@ -253,9 +307,23 @@ RF_Status si4362_modem_mod_type(SI4362_t *RF, uint8_t type)
   return RF_READY;
 }
 
-RF_Status si4362_base_frequency(SI4362_t *RF, uint32_t freq)
+RF_Status si4362_modem_clkgen_band(SI4362_t *RF, uint8_t sy_sel, uint8_t band)
 {
-  RF_Status status = si4362_set_property(RF, 0x20, 1, 0, &type);
+  uint8_t data = (sy_sel & 0b00001000) | (band & (0b00000111));
+  RF_Status status = si4362_set_property(RF, 0x20, 1, 0x51, &data);
+
+  if (status == RF_NOT_READY)
+  {
+    return RF_NOT_READY;
+  }
+
+  return RF_READY;
+}
+
+RF_Status si4362_freq_control(SI4362_t *RF, uint8_t inte, uint32_t frac)
+{
+  uint32_t data = (inte << 24) | (frac & 0x000FFFFF);
+  RF_Status status = si4362_set_property(RF, 0x40, 4, 0, (uint8_t *)&data);
 
   if (status == RF_NOT_READY)
   {

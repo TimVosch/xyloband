@@ -9,6 +9,27 @@ uint32_t STATUS = LED_BLUE;
 /**
  * 
  */
+void set_status(uint32_t pin, uint8_t freq)
+{
+  uint16_t ms = (1.0f / freq * 1000);
+  while (1)
+  {
+    PORT->Group[0].OUTTGL.reg = pin;
+    delay(ms);
+  }
+}
+
+void assertOk(RF_Status s, uint8_t speed)
+{
+  if (s == RF_NOT_READY)
+  {
+    set_status(LED_BLUE, speed);
+  }
+}
+
+/**
+ * 
+ */
 RF_Status rf_init()
 {
   // Initialize SPI
@@ -45,27 +66,26 @@ RF_Status rf_init_rx()
 {
   RF_Status s;
 
+  // Set CLK division for PLL
+  s = si4362_modem_clkgen_band(&RF, 1, 0x2);
+  assertOk(s, 4);
+
+  // Set frequency for PLL
+  s = si4362_freq_control(&RF, 56, 909000);
+  assertOk(s, 5);
+
+  // Set OOK
   s = si4362_modem_mod_type(&RF, 0x1);
-  if (s == RF_NOT_READY)
-  {
-    set_status(LED_BLUE, 4);
-    return s;
-  }
+  assertOk(s, 6);
+
+  s = si4362_set_gpio0_rx_state(&RF);
+  assertOk(s, 7);
+
+  // Start RX
+  s = si4362_start_rx(&RF, 1);
+  assertOk(s, 8);
 
   return RF_READY;
-}
-
-/**
- * 
- */
-void set_status(uint32_t pin, uint8_t freq)
-{
-  uint16_t ms = (1.0f / freq * 1000);
-  while (1)
-  {
-    PORT->Group[0].OUTTGL.reg = pin;
-    delay(ms);
-  }
 }
 
 int main(void)
@@ -88,9 +108,29 @@ int main(void)
     set_status(LED_RED, 2);
   }
 
-  // Signal that it's all good
-  set_status(LED_GREEN, 1);
+  // Check if we are in RX
+  uint8_t resp[3] = {0};
+  si4362_get_device_state(&RF, &resp[0]);
 
-  while (1)
-    ;
+  if (resp[1] != 0x8)
+  {
+    set_status(LED_BLUE, 5);
+  }
+
+  // Stay blue until we leave RX state
+  PORT->Group[0].OUTSET.reg = LED_BLUE;
+  uint8_t inRX = 1;
+  while ((inRX = (PORT->Group[0].IN.reg & (1 << RF.GPIO1))) == 1)
+  {
+    delay(1000);
+  }
+  PORT->Group[0].OUTCLR.reg = LED_BLUE;
+
+  // Only reached when no errors were thrown
+  uint16_t ms = 1000;
+  for (;;)
+  {
+    PORT->Group[0].OUTTGL.reg = LED_GREEN;
+    delay(ms);
+  }
 }

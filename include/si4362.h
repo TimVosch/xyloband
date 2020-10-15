@@ -35,10 +35,16 @@ extern "C"
 
   RF_Status si4362_power_up(SI4362_t *RF, POWER_UP_ARGUMENTS *args);
   RF_Status si4362_get_part_info(SI4362_t *RF, PART_INFO_RESPONSE *response);
-  RF_Status si4362_get_device_state(SI4362_t *RF);
+  RF_Status si4362_get_device_state(SI4362_t *RF, uint8_t *response);
   RF_Status si4362_change_state(SI4362_t *RF, uint8_t state);
+  RF_Status si4362_start_rx(SI4362_t *RF, uint16_t rx_len);
+  RF_Status si4362_fifo_info(SI4362_t *RF, bool reset, uint8_t *response);
+  RF_Status si4362_set_gpio0_rx_state(SI4362_t *RF);
+
   RF_Status si4362_set_property(SI4362_t *RF, uint8_t group, uint8_t propSize, uint8_t startProp, uint8_t *properties);
   RF_Status si4362_modem_mod_type(SI4362_t *RF, uint8_t type);
+  RF_Status si4362_modem_clkgen_band(SI4362_t *RF, uint8_t sy_sel, uint8_t band);
+  RF_Status si4362_freq_control(SI4362_t *RF, uint8_t inte, uint32_t frac);
 
 #ifdef __cplusplus
 }
